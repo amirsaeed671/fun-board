@@ -3,9 +3,6 @@
 // matches.recorded_by, tournaments.created_by). Boards are always public
 // (read-only) via users.share_slug; only the owner can mutate.
 export const SCHEMA_SQL = `
-PRAGMA journal_mode=WAL;
-PRAGMA foreign_keys=ON;
-
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   username TEXT NOT NULL UNIQUE,

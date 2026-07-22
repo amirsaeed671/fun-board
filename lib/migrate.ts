@@ -53,7 +53,9 @@ export async function migrate() {
     // 1) Create tables/indexes (fresh DB path).
     const statements = SCHEMA_SQL.split(";")
       .map((s) => s.trim())
-      .filter((s) => s.length > 0)
+      // Skip PRAGMAs: hosted Turso (libSQL over HTTP) rejects statements like
+      // `PRAGMA journal_mode=WAL`, and journaling/FK config is managed server-side.
+      .filter((s) => s.length > 0 && !/^pragma\b/i.test(s))
     for (const sql of statements) {
       await db.execute(sql)
     }
