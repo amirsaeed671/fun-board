@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils"
 interface PlayerAvatarProps {
   seed: string
   name: string
+  style?: string
   size?: "sm" | "md" | "lg" | "xl"
   className?: string
 }
@@ -16,11 +17,11 @@ const sizeMap = {
   xl: { avatar: "w-20 h-20", px: 80, fallback: "text-xl" },
 }
 
-export function PlayerAvatar({ seed, name, size = "md", className }: PlayerAvatarProps) {
+export function PlayerAvatar({ seed, name, style = "pixel-art", size = "md", className }: PlayerAvatarProps) {
   const s = sizeMap[size]
   return (
     <Avatar className={cn(s.avatar, "ring-1 ring-border bg-muted", className)}>
-      <AvatarImage src={getAvatarUrl(seed, s.px)} alt={name} />
+      <AvatarImage src={getAvatarUrl(seed, style, s.px)} alt={name} />
       <AvatarFallback className={cn("bg-primary/20 text-primary font-bold", s.fallback)}>
         {name.charAt(0).toUpperCase()}
       </AvatarFallback>

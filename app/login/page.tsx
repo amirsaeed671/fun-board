@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Trophy } from "lucide-react"
+import { SeedButton } from "@/components/seed-button"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -101,6 +102,13 @@ export default function LoginPage() {
                 Register
               </Link>
             </p>
+
+            <div className="mt-4 pt-4 border-t border-border">
+              <SeedButton />
+              <p className="text-xs text-muted-foreground text-center mt-2">
+                Loads a sample board you can browse (login: demo / demo1234).
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>

@@ -1,4 +1,6 @@
 import Link from "next/link"
+import { redirect } from "next/navigation"
+import { getSessionUserId } from "@/lib/session"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { getAllTournaments, getAllPlayers } from "@/lib/queries"
@@ -21,10 +23,16 @@ function formatBadge(format: string) {
 export const dynamic = "force-dynamic"
 
 export default async function TournamentsPage() {
+  const userId = await getSessionUserId()
+  if (!userId) redirect("/login")
+
   let tournaments: Tournament[] = []
   let players: Player[] = []
   try {
-    ;[tournaments, players] = await Promise.all([getAllTournaments(), getAllPlayers()])
+    ;[tournaments, players] = await Promise.all([
+      getAllTournaments(userId),
+      getAllPlayers(userId),
+    ])
   } catch {
     // DB not yet initialised
   }

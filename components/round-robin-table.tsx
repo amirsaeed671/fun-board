@@ -12,9 +12,10 @@ interface Props {
   matches: TournamentMatch[]
   tournamentId: string
   tournamentStatus: string
+  readOnly?: boolean
 }
 
-export function RoundRobinTable({ participants, matches, tournamentId, tournamentStatus }: Props) {
+export function RoundRobinTable({ participants, matches, tournamentId, tournamentStatus, readOnly = false }: Props) {
   // Sort by points desc then goal difference
   const sorted = [...participants].sort((a, b) => {
     if (b.points !== a.points) return b.points - a.points
@@ -115,7 +116,7 @@ export function RoundRobinTable({ participants, matches, tournamentId, tournamen
       </Card>
 
       {/* Pending matches to record */}
-      {tournamentStatus === "active" && pendingMatches.length > 0 && (
+      {!readOnly && tournamentStatus === "active" && pendingMatches.length > 0 && (
         <Card className="bg-card border-border">
           <CardHeader className="pb-3">
             <CardTitle className="font-display text-base">Fixtures to play</CardTitle>

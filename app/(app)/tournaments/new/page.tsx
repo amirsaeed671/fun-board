@@ -1,10 +1,15 @@
+import { redirect } from "next/navigation"
+import { getSessionUserId } from "@/lib/session"
 import { getAllPlayers } from "@/lib/queries"
 import NewTournamentForm from "@/components/new-tournament-form"
 
 export default async function NewTournamentPage() {
+  const userId = await getSessionUserId()
+  if (!userId) redirect("/login")
+
   let players: Awaited<ReturnType<typeof getAllPlayers>> = []
   try {
-    players = await getAllPlayers()
+    players = await getAllPlayers(userId)
   } catch {
     // DB not yet initialised
   }

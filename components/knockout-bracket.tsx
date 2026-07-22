@@ -12,9 +12,10 @@ interface Props {
   participants: TournamentParticipant[]
   tournamentId: string
   tournamentStatus: string
+  readOnly?: boolean
 }
 
-export function KnockoutBracket({ matches, participants, tournamentId, tournamentStatus }: Props) {
+export function KnockoutBracket({ matches, participants, tournamentId, tournamentStatus, readOnly = false }: Props) {
   const rounds = Array.from(new Set(matches.map((m) => m.round))).sort((a, b) => a - b)
 
   function getParticipant(id: string | null) {
@@ -55,6 +56,7 @@ export function KnockoutBracket({ matches, participants, tournamentId, tournamen
                     const winner = getParticipant(match.winner_participant_id)
                     const isCompleted = match.status === "completed"
                     const canRecord =
+                      !readOnly &&
                       tournamentStatus === "active" &&
                       match.status === "pending" &&
                       home &&

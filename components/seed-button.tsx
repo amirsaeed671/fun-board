@@ -4,29 +4,40 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { DatabaseZap } from "lucide-react"
+import { toast } from "sonner"
 
+/** Creates the demo board (demo / demo1234) and opens its public page. */
 export function SeedButton() {
   const [loading, setLoading] = useState(false)
-  const [done, setDone] = useState(false)
   const router = useRouter()
 
   async function handleSeed() {
     setLoading(true)
-    const res = await fetch("/api/seed", { method: "POST" })
-    const data = await res.json()
-    setLoading(false)
-    if (data.ok) {
-      setDone(true)
-      router.refresh()
+    try {
+      const res = await fetch("/api/seed", { method: "POST" })
+      const data = await res.json()
+      if (data.ok) {
+        toast.success("Demo board ready — login: demo / demo1234")
+        router.push(data.shareUrl ?? "/l/demo")
+      } else {
+        toast.error(data.error ?? "Could not load demo")
+      }
+    } catch {
+      toast.error("Could not load demo")
+    } finally {
+      setLoading(false)
     }
   }
 
-  if (done) return <p className="text-sm text-primary font-medium">Seeded! Refresh to see data.</p>
-
   return (
-    <Button onClick={handleSeed} disabled={loading} variant="outline" className="gap-2 shrink-0 border-primary/40 text-primary hover:bg-primary/10">
+    <Button
+      onClick={handleSeed}
+      disabled={loading}
+      variant="outline"
+      className="gap-2 w-full border-primary/40 text-primary hover:bg-primary/10"
+    >
       <DatabaseZap className="w-4 h-4" />
-      {loading ? "Seeding..." : "Seed Sample Data"}
+      {loading ? "Loading demo…" : "Try the demo board"}
     </Button>
   )
 }

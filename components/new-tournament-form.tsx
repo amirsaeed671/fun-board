@@ -14,9 +14,10 @@ import type { Player } from "@/lib/queries"
 
 interface Props {
   players: Player[]
+  onCreated?: () => void
 }
 
-export default function NewTournamentForm({ players }: Props) {
+export default function NewTournamentForm({ players, onCreated }: Props) {
   const router = useRouter()
   const { data: session } = useSession()
 
@@ -62,6 +63,7 @@ export default function NewTournamentForm({ players }: Props) {
     if (!res.ok) {
       setError(data.error ?? "Failed to create tournament")
     } else {
+      onCreated?.()
       router.push(`/tournaments/${data.id}`)
       router.refresh()
     }

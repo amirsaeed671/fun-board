@@ -14,8 +14,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { PlayerAvatar } from "@/components/player-avatar"
-import { getRandomSeed } from "@/lib/avatar"
-import { Plus, RefreshCw } from "lucide-react"
+import { getRandomSeed, AVATAR_STYLES } from "@/lib/avatar"
+import { Plus, RefreshCw, Shuffle } from "lucide-react"
 
 export default function NewPlayerDialog() {
   const router = useRouter()
@@ -23,11 +23,17 @@ export default function NewPlayerDialog() {
   const [open, setOpen] = useState(false)
   const [name, setName] = useState("")
   const [seed, setSeed] = useState(getRandomSeed())
+  const [styleIdx, setStyleIdx] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
+  const style = AVATAR_STYLES[styleIdx]
+
   function randomizeSeed() {
     setSeed(getRandomSeed())
+  }
+  function cycleStyle() {
+    setStyleIdx((i) => (i + 1) % AVATAR_STYLES.length)
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -42,7 +48,7 @@ export default function NewPlayerDialog() {
     const res = await fetch("/api/players", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name.trim(), avatarSeed: seed }),
+      body: JSON.stringify({ name: name.trim(), avatarSeed: seed, avatarStyle: style }),
     })
 
     const data = await res.json()
@@ -54,6 +60,7 @@ export default function NewPlayerDialog() {
       setOpen(false)
       setName("")
       setSeed(getRandomSeed())
+      setStyleIdx(0)
       router.refresh()
     }
   }
@@ -71,17 +78,29 @@ export default function NewPlayerDialog() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-2">
           {/* Avatar preview */}
           <div className="flex flex-col items-center gap-3">
-            <PlayerAvatar seed={seed} name={name || "?"} size="xl" />
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={randomizeSeed}
-              className="gap-2 text-muted-foreground hover:text-foreground"
-            >
-              <RefreshCw className="w-3 h-3" />
-              Randomize avatar
-            </Button>
+            <PlayerAvatar seed={seed} name={name || "?"} style={style} size="xl" />
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={randomizeSeed}
+                className="gap-2 text-muted-foreground hover:text-foreground"
+              >
+                <RefreshCw className="w-3 h-3" />
+                Shuffle seed
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={cycleStyle}
+                className="gap-2 text-muted-foreground hover:text-foreground"
+              >
+                <Shuffle className="w-3 h-3" />
+                {style}
+              </Button>
+            </div>
           </div>
 
           <div className="flex flex-col gap-1.5">

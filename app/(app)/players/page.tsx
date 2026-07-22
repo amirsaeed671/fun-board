@@ -1,4 +1,6 @@
 import Link from "next/link"
+import { redirect } from "next/navigation"
+import { getSessionUserId } from "@/lib/session"
 import { getAllPlayers } from "@/lib/queries"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -12,9 +14,12 @@ import { cn } from "@/lib/utils"
 export const dynamic = "force-dynamic"
 
 export default async function PlayersPage() {
+  const userId = await getSessionUserId()
+  if (!userId) redirect("/login")
+
   let players: Awaited<ReturnType<typeof getAllPlayers>> = []
   try {
-    players = await getAllPlayers()
+    players = await getAllPlayers(userId)
   } catch {
     // empty
   }

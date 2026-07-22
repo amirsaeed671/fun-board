@@ -6,8 +6,10 @@ import { useSession } from "next-auth/react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { PlayerAvatar } from "@/components/player-avatar"
+import { TeamCombobox } from "@/components/team-combobox"
 import { calculateEloChanges, getEloTier } from "@/lib/elo"
 import { cn } from "@/lib/utils"
 import { Minus, Plus, ChevronRight, ArrowLeftRight } from "lucide-react"
@@ -15,7 +17,10 @@ import type { Player } from "@/lib/queries"
 
 interface Props {
   players: Player[]
+  teamNames?: string[]
   tournamentMatchId?: string
+  tournamentId?: string
+  isKnockout?: boolean
   defaultHomeId?: string
   defaultAwayId?: string
   onSuccess?: () => void
@@ -23,7 +28,10 @@ interface Props {
 
 export default function MatchRecorderForm({
   players,
+  teamNames = [],
   tournamentMatchId,
+  tournamentId,
+  isKnockout = false,
   defaultHomeId,
   defaultAwayId,
   onSuccess,
@@ -35,6 +43,10 @@ export default function MatchRecorderForm({
   const [awayId, setAwayId] = useState(defaultAwayId ?? "")
   const [homeScore, setHomeScore] = useState(0)
   const [awayScore, setAwayScore] = useState(0)
+  const [homeTeam, setHomeTeam] = useState("")
+  const [awayTeam, setAwayTeam] = useState("")
+  const [playedAt, setPlayedAt] = useState(() => new Date().toISOString().slice(0, 10))
+  const [shootoutWinnerId, setShootoutWinnerId] = useState("")
   const [notes, setNotes] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
@@ -42,6 +54,8 @@ export default function MatchRecorderForm({
 
   const homePl = players.find((p) => p.id === homeId)
   const awayPl = players.find((p) => p.id === awayId)
+  const isDraw = homeScore === awayScore
+  const needsShootout = isKnockout && isDraw && !!homeId && !!awayId
 
   // Elo preview
   const eloPreview =
@@ -72,6 +86,10 @@ export default function MatchRecorderForm({
       setError("Players must be different")
       return
     }
+    if (needsShootout && !shootoutWinnerId) {
+      setError("A knockout match can't be a draw — pick a shootout winner.")
+      return
+    }
 
     setLoading(true)
     setError("")
@@ -84,8 +102,12 @@ export default function MatchRecorderForm({
         awayPlayerId: awayId,
         homeScore,
         awayScore,
+        homeTeam: homeTeam.trim() || undefined,
+        awayTeam: awayTeam.trim() || undefined,
+        playedAt: playedAt ? new Date(playedAt).toISOString() : undefined,
         notes: notes.trim() || undefined,
         tournamentMatchId: tournamentMatchId ?? undefined,
+        shootoutWinnerId: needsShootout ? shootoutWinnerId : undefined,
       }),
     })
 
@@ -273,6 +295,75 @@ export default function MatchRecorderForm({
               </div>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Shootout winner (knockout draws) */}
+      {needsShootout && (
+        <Card className="bg-accent/10 border-accent/40">
+          <CardContent className="p-4">
+            <p className="text-sm font-medium mb-2">
+              Level on the night — who won the penalty shootout?
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {[homePl, awayPl].map((pl) =>
+                pl ? (
+                  <button
+                    key={pl.id}
+                    type="button"
+                    onClick={() => setShootoutWinnerId(pl.id)}
+                    className={cn(
+                      "flex items-center gap-2 p-2.5 rounded-lg border-2 transition-all text-left",
+                      shootoutWinnerId === pl.id
+                        ? "border-accent bg-accent/10"
+                        : "border-border bg-card hover:border-border/80"
+                    )}
+                  >
+                    <PlayerAvatar seed={pl.avatar_seed} name={pl.name} size="sm" />
+                    <span className="text-sm font-medium truncate">{pl.name}</span>
+                  </button>
+                ) : null
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Teams & date */}
+      <Card className="bg-card border-border">
+        <CardContent className="p-5 flex flex-col gap-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs text-muted-foreground">{homePl?.name ?? "Home"} team</Label>
+              <TeamCombobox
+                id="home-team"
+                value={homeTeam}
+                onChange={setHomeTeam}
+                suggestions={teamNames}
+                className="bg-input"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs text-muted-foreground">{awayPl?.name ?? "Away"} team</Label>
+              <TeamCombobox
+                id="away-team"
+                value={awayTeam}
+                onChange={setAwayTeam}
+                suggestions={teamNames}
+                className="bg-input"
+              />
+            </div>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="played-at" className="text-xs text-muted-foreground">Date</Label>
+            <Input
+              id="played-at"
+              type="date"
+              value={playedAt}
+              onChange={(e) => setPlayedAt(e.target.value)}
+              className="bg-input w-fit"
+            />
+          </div>
         </CardContent>
       </Card>
 

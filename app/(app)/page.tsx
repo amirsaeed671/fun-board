@@ -1,32 +1,46 @@
 import Link from "next/link"
+import { redirect } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { PlayerAvatar } from "@/components/player-avatar"
 import { MatchCard } from "@/components/match-card"
 import { EloTierBadge } from "@/components/elo-tier-badge"
-import { getLeaderboard, getRecentMatches, getGlobalStats } from "@/lib/queries"
-import { Trophy, Flame, Target, Plus, ArrowRight, Swords } from "lucide-react"
+import { getSessionUserId } from "@/lib/session"
+import { getRecentMatches, getGlobalStats } from "@/lib/queries"
+import { getEnrichedLeaderboard } from "@/lib/leaderboard"
+import { Podium } from "@/components/podium"
+import { Trophy, Flame, Target, Plus, ArrowRight, Swords, Users } from "lucide-react"
 import type { Player } from "@/lib/queries"
-import { SeedButton } from "@/components/seed-button"
 
 async function DashboardContent() {
+  const userId = await getSessionUserId()
+  if (!userId) redirect("/login")
+
   let players: Player[] = []
+  let pointsOrder: string[] = []
   let recentMatches: Awaited<ReturnType<typeof getRecentMatches>> = []
   let stats = { totalMatches: 0, totalPlayers: 0, topScorer: undefined as undefined | { name: string; goals_for: number; avatar_seed: string } }
 
   try {
-    ;[players, recentMatches, stats] = await Promise.all([
-      getLeaderboard(),
-      getRecentMatches(6),
-      getGlobalStats(),
+    const [enriched, recent, s] = await Promise.all([
+      getEnrichedLeaderboard(userId),
+      getRecentMatches(userId, 6),
+      getGlobalStats(userId),
     ])
+    players = enriched.players
+    pointsOrder = enriched.pointsOrder
+    recentMatches = recent
+    stats = s
   } catch {
     // DB not yet set up — show empty state
   }
 
-  const top3 = players.slice(0, 3)
-  const podiumOrder = top3.length >= 3 ? [top3[1], top3[0], top3[2]] : top3
+  // Podium follows the points ranking.
+  const rankedForPodium = pointsOrder
+    .map((id) => players.find((p) => p.id === id))
+    .filter(Boolean) as Player[]
+  const top3 = rankedForPodium.slice(0, 3)
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8">
@@ -99,27 +113,7 @@ async function DashboardContent() {
             </CardTitle>
           </CardHeader>
           <CardContent className="pb-6">
-            <div className="flex items-end justify-center gap-4">
-              {podiumOrder.map((player, podiumIdx) => {
-                if (!player) return null
-                const rank = podiumIdx === 0 ? 2 : podiumIdx === 1 ? 1 : 3
-                const heights = { 1: "h-28", 2: "h-20", 3: "h-16" }
-                const golds = { 1: "text-accent glow-accent", 2: "text-muted-foreground", 3: "text-orange-600" }
-                return (
-                  <Link key={player.id} href={`/players/${player.id}`} className="flex flex-col items-center gap-2 group">
-                    <div className="relative">
-                      <PlayerAvatar seed={player.avatar_seed} name={player.name} size={rank === 1 ? "xl" : "lg"} className="ring-2 ring-border group-hover:ring-primary transition-all" />
-                      <span className={`absolute -top-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold font-display bg-card border border-border ${golds[rank as 1|2|3]}`}>
-                        {rank}
-                      </span>
-                    </div>
-                    <p className="text-sm font-medium text-center max-w-[80px] truncate">{player.name}</p>
-                    <EloTierBadge elo={player.elo} />
-                    <div className={`w-16 rounded-t-md bg-primary/20 border-t-2 border-primary/40 ${heights[rank as 1|2|3]}`} />
-                  </Link>
-                )
-              })}
-            </div>
+            <Podium players={rankedForPodium} />
           </CardContent>
         </Card>
       )}
@@ -195,17 +189,22 @@ async function DashboardContent() {
         </div>
       </div>
 
-      {/* Seed banner if empty */}
+      {/* Onboarding when empty */}
       {players.length === 0 && (
         <Card className="bg-primary/10 border-primary/30">
-          <CardContent className="p-6 flex items-center justify-between gap-4">
+          <CardContent className="p-6 flex items-center justify-between gap-4 flex-wrap">
             <div>
-              <p className="font-display font-semibold text-foreground">No data yet</p>
+              <p className="font-display font-semibold text-foreground">Welcome! Let&apos;s set up your league</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Seed the database with 8 sample players and 30 matches to get started.
+                Add your friends as players, then record your first match to start the rankings.
               </p>
             </div>
-            <SeedButton />
+            <Link href="/players">
+              <Button className="gap-2">
+                <Users className="w-4 h-4" />
+                Add players
+              </Button>
+            </Link>
           </CardContent>
         </Card>
       )}

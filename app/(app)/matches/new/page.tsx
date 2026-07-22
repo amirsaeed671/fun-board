@@ -1,4 +1,6 @@
-import { getAllPlayers } from "@/lib/queries"
+import { redirect } from "next/navigation"
+import { getSessionUserId } from "@/lib/session"
+import { getAllPlayers, getTeamNames, getFixtureContext } from "@/lib/queries"
 import MatchRecorderForm from "@/components/match-recorder-form"
 
 export const dynamic = "force-dynamic"
@@ -12,10 +14,21 @@ interface PageProps {
 }
 
 export default async function NewMatchPage({ searchParams }: PageProps) {
+  const userId = await getSessionUserId()
+  if (!userId) redirect("/login")
+
   const sp = await searchParams
   let players: Awaited<ReturnType<typeof getAllPlayers>> = []
+  let teamNames: string[] = []
+  let fixture: Awaited<ReturnType<typeof getFixtureContext>> = null
   try {
-    players = await getAllPlayers()
+    ;[players, teamNames] = await Promise.all([
+      getAllPlayers(userId),
+      getTeamNames(userId),
+    ])
+    if (sp.tournamentMatchId) {
+      fixture = await getFixtureContext(userId, sp.tournamentMatchId)
+    }
   } catch {
     // DB not initialised
   }
@@ -30,7 +43,10 @@ export default async function NewMatchPage({ searchParams }: PageProps) {
       </div>
       <MatchRecorderForm
         players={players}
+        teamNames={teamNames}
         tournamentMatchId={sp.tournamentMatchId}
+        tournamentId={fixture?.tournamentId}
+        isKnockout={fixture?.isKnockout ?? false}
         defaultHomeId={sp.homeId}
         defaultAwayId={sp.awayId}
       />
