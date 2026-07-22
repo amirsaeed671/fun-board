@@ -48,6 +48,15 @@ export function LeaderboardTable({
           )
         : pointsOrder.map((id) => byId.get(id)).filter(Boolean as unknown as (p: Player | undefined) => p is Player)
 
+  // In Goals view the GF column IS the ranking, so we drop the separate metric column.
+  const showMetric = view !== "goals"
+  const gridCols = cn(
+    "grid gap-2 px-4",
+    showMetric
+      ? "grid-cols-[1.75rem_minmax(5rem,1fr)_3.5rem_2rem_2rem_2.5rem_3rem]"
+      : "grid-cols-[1.75rem_minmax(5rem,1fr)_3.5rem_2rem_2rem_2.5rem]"
+  )
+
   return (
     <div className="space-y-4">
       {/* Toggle (hidden when a parent renders a shared one) */}
@@ -69,102 +78,120 @@ export function LeaderboardTable({
       )}
 
       <div className="rounded-xl border border-border bg-card overflow-hidden">
-        <div className="grid grid-cols-[2rem_1fr_auto_auto_auto] gap-3 px-4 py-2.5 border-b border-border bg-secondary/50 text-xs text-muted-foreground font-medium">
-          <span>#</span>
-          <span>Player</span>
-          <span className="text-right w-20">W/D/L</span>
-          <span className="text-right w-10">GD</span>
-          <span className="text-right w-14">{METRIC_HEAD[view]}</span>
-        </div>
+        <div className="overflow-x-auto">
+          <div className="min-w-[420px]">
+            <div className={cn(gridCols, "py-2.5 border-b border-border bg-secondary/50 text-xs text-muted-foreground font-medium")}>
+              <span>#</span>
+              <span>Player</span>
+              <span className="text-right">W/D/L</span>
+              <span className="text-right">GF</span>
+              <span className="text-right">GC</span>
+              <span className="text-right">GD</span>
+              {showMetric && <span className="text-right">{METRIC_HEAD[view]}</span>}
+            </div>
 
-        {ordered.length === 0 ? (
-          <div className="py-16 text-center text-muted-foreground text-sm">
-            No players yet.
-          </div>
-        ) : (
-          <div className="divide-y divide-border">
-            {ordered.map((player, i) => {
-              const { color } = getEloTier(player.elo)
-              const gd = player.goals_for - player.goals_against
-              const streak = player.current_streak
-              const onFire = streak?.type === "W" && streak.count >= 3
-              const metric =
-                view === "points"
-                  ? player.total_points ?? player.points
-                  : view === "goals"
-                    ? player.goals_for
-                    : player.elo
+            {ordered.length === 0 ? (
+              <div className="py-16 text-center text-muted-foreground text-sm">
+                No players yet.
+              </div>
+            ) : (
+              <div className="divide-y divide-border">
+                {ordered.map((player, i) => {
+                  const { color } = getEloTier(player.elo)
+                  const gd = player.goals_for - player.goals_against
+                  const streak = player.current_streak
+                  const onFire = streak?.type === "W" && streak.count >= 3
+                  const metric =
+                    view === "points" ? player.total_points ?? player.points : player.elo
 
-              return (
-                <motion.div
-                  key={player.id}
-                  layout
-                  transition={{ type: "spring", stiffness: 500, damping: 40 }}
-                >
-                  <Link
-                    href={`${playerBasePath}/players/${player.id}`}
-                    className={cn(
-                      "grid grid-cols-[2rem_1fr_auto_auto_auto] gap-3 px-4 py-3 items-center hover:bg-secondary/50 transition-colors",
-                      i === 0 && "bg-accent/5"
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "text-sm font-bold font-display text-center",
-                        i === 0 ? "text-accent" : i === 1 ? "text-slate-400" : i === 2 ? "text-orange-600" : "text-muted-foreground"
-                      )}
+                  return (
+                    <motion.div
+                      key={player.id}
+                      layout
+                      transition={{ type: "spring", stiffness: 500, damping: 40 }}
                     >
-                      {i + 1}
-                    </span>
-
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="relative shrink-0">
-                        <PlayerAvatar seed={player.avatar_seed} name={player.name} size="sm" style={player.avatar_style} />
-                        {i === 0 && (
-                          <Crown className="absolute -top-2 -right-1 w-4 h-4 text-accent fill-accent/30 rotate-12" />
+                      <Link
+                        href={`${playerBasePath}/players/${player.id}`}
+                        className={cn(
+                          gridCols,
+                          "py-3 items-center hover:bg-secondary/50 transition-colors",
+                          i === 0 && "bg-accent/5"
                         )}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium truncate flex items-center gap-1.5">
-                          {player.name}
-                          {onFire && (
-                            <span className="inline-flex items-center gap-0.5 text-orange-400 text-xs font-bold">
-                              <Flame className="w-3 h-3 fill-orange-400/40" />
-                              {streak!.count}
-                            </span>
+                      >
+                        <span
+                          className={cn(
+                            "text-sm font-bold font-display text-center",
+                            i === 0 ? "text-accent" : i === 1 ? "text-slate-400" : i === 2 ? "text-orange-600" : "text-muted-foreground"
                           )}
-                        </p>
-                        <EloTierBadge elo={player.elo} showElo={false} />
-                      </div>
-                    </div>
+                        >
+                          {i + 1}
+                        </span>
 
-                    <span className="text-sm tabular-nums text-muted-foreground text-right w-20">
-                      {player.wins}/{player.draws}/{player.losses}
-                    </span>
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="relative shrink-0">
+                            <PlayerAvatar seed={player.avatar_seed} name={player.name} size="sm" style={player.avatar_style} />
+                            {i === 0 && (
+                              <Crown className="absolute -top-2 -right-1 w-4 h-4 text-accent fill-accent/30 rotate-12" />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate flex items-center gap-1.5">
+                              {player.name}
+                              {onFire && (
+                                <span className="inline-flex items-center gap-0.5 text-orange-400 text-xs font-bold">
+                                  <Flame className="w-3 h-3 fill-orange-400/40" />
+                                  {streak!.count}
+                                </span>
+                              )}
+                            </p>
+                            <EloTierBadge elo={player.elo} showElo={false} />
+                          </div>
+                        </div>
 
-                    <span
-                      className={cn(
-                        "text-sm font-medium tabular-nums text-right w-10",
-                        gd > 0 ? "text-primary" : gd < 0 ? "text-destructive" : "text-muted-foreground"
-                      )}
-                    >
-                      {gd > 0 ? `+${gd}` : gd}
-                    </span>
+                        <span className="text-sm tabular-nums text-muted-foreground text-right">
+                          {player.wins}/{player.draws}/{player.losses}
+                        </span>
 
-                    <span
-                      className={cn(
-                        "text-sm font-bold font-display tabular-nums text-right w-14",
-                        view === "elo" ? color : view === "goals" ? "text-accent" : "text-primary"
-                      )}
-                    >
-                      {metric}
-                    </span>
-                  </Link>
-                </motion.div>
-              )
-            })}
+                        <span
+                          className={cn(
+                            "text-sm tabular-nums text-right",
+                            view === "goals" ? "font-bold font-display text-accent" : "text-muted-foreground"
+                          )}
+                        >
+                          {player.goals_for}
+                        </span>
+
+                        <span className="text-sm tabular-nums text-right text-muted-foreground">
+                          {player.goals_against}
+                        </span>
+
+                        <span
+                          className={cn(
+                            "text-sm font-medium tabular-nums text-right",
+                            gd > 0 ? "text-primary" : gd < 0 ? "text-destructive" : "text-muted-foreground"
+                          )}
+                        >
+                          {gd > 0 ? `+${gd}` : gd}
+                        </span>
+
+                        {showMetric && (
+                          <span
+                            className={cn(
+                              "text-sm font-bold font-display tabular-nums text-right",
+                              view === "elo" ? color : "text-primary"
+                            )}
+                          >
+                            {metric}
+                          </span>
+                        )}
+                      </Link>
+                    </motion.div>
+                  )
+                })}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   )

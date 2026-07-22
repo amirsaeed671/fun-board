@@ -112,14 +112,15 @@ export function PlayerStats({ player: p, matches, eloHistory, playerBasePath = "
       </Card>
 
       {/* Stat grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <StatCard label="Win rate" value={`${record.winRate}%`} className="text-primary" />
+        <StatCard label="Goals for" value={record.gf} className="text-accent" />
+        <StatCard label="Goals against" value={record.ga} className="text-destructive" />
         <StatCard
           label="Goal diff"
           value={record.gd > 0 ? `+${record.gd}` : `${record.gd}`}
           className={record.gd > 0 ? "text-primary" : record.gd < 0 ? "text-destructive" : "text-muted-foreground"}
         />
-        <StatCard label="Goals for" value={record.gf} className="text-accent" />
         <StatCard label="Longest W streak" value={longest} className="text-orange-400" />
       </div>
 
