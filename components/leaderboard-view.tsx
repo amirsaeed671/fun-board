@@ -6,7 +6,9 @@ import { LeaderboardTable } from "@/components/leaderboard-table"
 import { cn } from "@/lib/utils"
 import type { Player } from "@/lib/queries"
 
-type View = "points" | "elo"
+type View = "points" | "elo" | "goals"
+
+const VIEW_LABEL: Record<View, string> = { points: "Points", elo: "Elo", goals: "Goals" }
 
 interface Props {
   players: Player[]
@@ -34,12 +36,18 @@ export function LeaderboardView({
   const ordered =
     view === "elo"
       ? [...players].sort((a, b) => b.elo - a.elo)
-      : (pointsOrder.map((id) => byId.get(id)).filter(Boolean) as Player[])
+      : view === "goals"
+        ? [...players].sort(
+            (a, b) =>
+              b.goals_for - a.goals_for ||
+              b.goals_for - b.goals_against - (a.goals_for - a.goals_against)
+          )
+        : (pointsOrder.map((id) => byId.get(id)).filter(Boolean) as Player[])
 
   return (
     <div className="space-y-4">
       <div className="inline-flex rounded-lg border border-border bg-secondary/50 p-1">
-        {(["points", "elo"] as const).map((v) => (
+        {(["points", "elo", "goals"] as const).map((v) => (
           <button
             key={v}
             onClick={() => setView(v)}
@@ -48,7 +56,7 @@ export function LeaderboardView({
               view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
             )}
           >
-            {v === "points" ? "Points" : "Elo"}
+            {VIEW_LABEL[v]}
           </button>
         ))}
       </div>

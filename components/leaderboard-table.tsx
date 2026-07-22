@@ -10,7 +10,10 @@ import { cn } from "@/lib/utils"
 import { Crown, Flame } from "lucide-react"
 import type { Player } from "@/lib/queries"
 
-type View = "points" | "elo"
+type View = "points" | "elo" | "goals"
+
+const VIEW_LABEL: Record<View, string> = { points: "Points", elo: "Elo", goals: "Goals" }
+const METRIC_HEAD: Record<View, string> = { points: "Pts", elo: "Elo", goals: "GF" }
 
 interface Props {
   players: Player[]
@@ -37,23 +40,29 @@ export function LeaderboardTable({
   const ordered =
     view === "elo"
       ? [...players].sort((a, b) => b.elo - a.elo)
-      : pointsOrder.map((id) => byId.get(id)).filter(Boolean as unknown as (p: Player | undefined) => p is Player)
+      : view === "goals"
+        ? [...players].sort(
+            (a, b) =>
+              b.goals_for - a.goals_for ||
+              b.goals_for - b.goals_against - (a.goals_for - a.goals_against)
+          )
+        : pointsOrder.map((id) => byId.get(id)).filter(Boolean as unknown as (p: Player | undefined) => p is Player)
 
   return (
     <div className="space-y-4">
       {/* Toggle (hidden when a parent renders a shared one) */}
       {showToggle && (
         <div className="inline-flex rounded-lg border border-border bg-secondary/50 p-1">
-          {(["points", "elo"] as const).map((v) => (
+          {(["points", "elo", "goals"] as const).map((v) => (
             <button
               key={v}
               onClick={() => setInternalView(v)}
               className={cn(
-                "px-4 py-1.5 rounded-md text-sm font-medium font-display transition-colors capitalize",
+                "px-4 py-1.5 rounded-md text-sm font-medium font-display transition-colors",
                 view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
               )}
             >
-              {v === "points" ? "Points" : "Elo"}
+              {VIEW_LABEL[v]}
             </button>
           ))}
         </div>
@@ -65,7 +74,7 @@ export function LeaderboardTable({
           <span>Player</span>
           <span className="text-right w-20">W/D/L</span>
           <span className="text-right w-10">GD</span>
-          <span className="text-right w-14">{view === "points" ? "Pts" : "Elo"}</span>
+          <span className="text-right w-14">{METRIC_HEAD[view]}</span>
         </div>
 
         {ordered.length === 0 ? (
@@ -79,7 +88,12 @@ export function LeaderboardTable({
               const gd = player.goals_for - player.goals_against
               const streak = player.current_streak
               const onFire = streak?.type === "W" && streak.count >= 3
-              const metric = view === "points" ? player.total_points ?? player.points : player.elo
+              const metric =
+                view === "points"
+                  ? player.total_points ?? player.points
+                  : view === "goals"
+                    ? player.goals_for
+                    : player.elo
 
               return (
                 <motion.div
@@ -140,7 +154,7 @@ export function LeaderboardTable({
                     <span
                       className={cn(
                         "text-sm font-bold font-display tabular-nums text-right w-14",
-                        view === "points" ? "text-primary" : color
+                        view === "elo" ? color : view === "goals" ? "text-accent" : "text-primary"
                       )}
                     >
                       {metric}
