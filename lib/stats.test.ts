@@ -16,6 +16,9 @@ import {
   recentForm,
   buildH2HWins,
   sortPointsTable,
+  mostPickedTeam,
+  mostWinsTeam,
+  teamGlobalStats,
 } from "./stats"
 
 // Minimal Match factory. `p1` is always the "home" player unless overridden.
@@ -172,6 +175,70 @@ describe("streaks and form", () => {
       "A"
     )
     expect(recentForm(rows, 2)).toEqual(["W", "D"])
+  })
+})
+
+describe("mostPickedTeam / mostWinsTeam", () => {
+  // A: Arsenal x3 (2W,1L), Spurs x1 (1W)
+  const rows = toPlayerRows(
+    [
+      mk({ home: "A", away: "B", hs: 2, as: 0, ht: "Arsenal" }),
+      mk({ home: "A", away: "B", hs: 1, as: 0, ht: "Arsenal" }),
+      mk({ home: "A", away: "B", hs: 0, as: 3, ht: "Arsenal" }),
+      mk({ home: "A", away: "B", hs: 5, as: 1, ht: "Spurs" }),
+    ],
+    "A"
+  )
+  it("favourite team is the most-picked one", () => {
+    expect(mostPickedTeam(rows)?.team).toBe("Arsenal") // picked 3x
+  })
+  it("most-wins team is the one with the most victories", () => {
+    expect(mostWinsTeam(rows)?.team).toBe("Arsenal") // 2 wins vs Spurs 1
+  })
+  it("returns null when no teams recorded", () => {
+    const noTeams = toPlayerRows([mk({ home: "A", away: "B", hs: 1, as: 0 })], "A")
+    expect(mostPickedTeam(noTeams)).toBeNull()
+    expect(mostWinsTeam(noTeams)).toBeNull()
+  })
+})
+
+describe("teamGlobalStats", () => {
+  it("aggregates picks/record across both sides of every match", () => {
+    const matches = [
+      mk({ home: "A", away: "B", hs: 2, as: 0, ht: "Real Madrid", at: "Barcelona" }),
+      mk({ home: "B", away: "A", hs: 1, as: 1, at: "Real Madrid", ht: "Barcelona" }),
+      mk({ home: "A", away: "B", hs: 3, as: 2, ht: "Real Madrid", at: "Man City" }),
+    ]
+    const stats = teamGlobalStats(matches)
+    const real = stats.find((t) => t.team === "Real Madrid")!
+    expect(real.picks).toBe(3) // home, away, home
+    expect({ w: real.w, d: real.d, l: real.l }).toEqual({ w: 2, d: 1, l: 0 })
+    expect(real.winRate).toBe(67)
+  })
+
+  it("reports the player who picks a team most and ignores empty teams", () => {
+    const matches = [
+      mk({ home: "A", away: "B", hs: 1, as: 0, ht: "PSG" }), // away team empty -> not counted
+      mk({ home: "A", away: "C", hs: 2, as: 0, ht: "PSG" }),
+      mk({ home: "C", away: "A", hs: 0, as: 1, ht: "PSG" }), // C uses PSG once
+    ]
+    const psg = teamGlobalStats(matches).find((t) => t.team === "PSG")!
+    expect(psg.picks).toBe(3)
+    expect(psg.users).toBe(2) // A and C
+    expect(psg.topUser?.name).toBe("A") // A used it twice
+    expect(psg.topUser?.count).toBe(2)
+  })
+
+  it("is sorted by picks (most picked first)", () => {
+    const matches = [
+      mk({ home: "A", away: "B", hs: 1, as: 0, ht: "United", at: "City" }),
+      mk({ home: "A", away: "B", hs: 1, as: 0, ht: "United", at: "City" }),
+      mk({ home: "A", away: "B", hs: 1, as: 0, ht: "United" }),
+    ]
+    const stats = teamGlobalStats(matches)
+    expect(stats[0].team).toBe("United") // 3 picks
+    expect(stats[0].picks).toBe(3)
+    expect(stats[1].team).toBe("City") // 2 picks
   })
 })
 

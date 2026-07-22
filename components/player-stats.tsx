@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PlayerAvatar } from "@/components/player-avatar"
+import { TeamBadge } from "@/components/team-badge"
 import { MatchCard } from "@/components/match-card"
 import EloChart from "@/components/elo-chart"
 import { getEloTier } from "@/lib/elo"
@@ -16,6 +17,8 @@ import {
   teamsUsed,
   bestTeam,
   unluckyTeam,
+  mostPickedTeam,
+  mostWinsTeam,
   biggestWin,
   worstDefeat,
   longestWinStreak,
@@ -52,6 +55,8 @@ export function PlayerStats({ player: p, matches, eloHistory, playerBasePath = "
   const teams = teamsUsed(rows)
   const best = bestTeam(rows)
   const unlucky = unluckyTeam(rows)
+  const favTeam = mostPickedTeam(rows)
+  const winsTeam = mostWinsTeam(rows)
   const biggest = biggestWin(rows)
   const worst = worstDefeat(rows)
   const longest = longestWinStreak(rows)
@@ -233,6 +238,40 @@ export function PlayerStats({ player: p, matches, eloHistory, playerBasePath = "
             </table>
           </CardContent>
         </Card>
+      )}
+
+      {/* Favourite team + most wins */}
+      {(favTeam || winsTeam) && (
+        <div className="grid sm:grid-cols-2 gap-3">
+          {favTeam && (
+            <Card className="bg-card border-border">
+              <CardContent className="p-4 flex items-center gap-3">
+                <TeamBadge name={favTeam.team} size="md" />
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Favourite team</p>
+                  <p className="text-sm font-medium truncate">{favTeam.team}</p>
+                  <p className="text-xs text-muted-foreground">
+                    picked {favTeam.played} {favTeam.played === 1 ? "time" : "times"}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          {winsTeam && (
+            <Card className="bg-card border-border">
+              <CardContent className="p-4 flex items-center gap-3">
+                <TeamBadge name={winsTeam.team} size="md" />
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Most wins with</p>
+                  <p className="text-sm font-medium truncate">{winsTeam.team}</p>
+                  <p className="text-xs text-primary">
+                    {winsTeam.w} {winsTeam.w === 1 ? "win" : "wins"} · {winsTeam.winRate}% win rate
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
 
       {/* Teams used */}

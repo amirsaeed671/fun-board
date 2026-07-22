@@ -164,6 +164,20 @@ export function unluckyTeam(rows: PlayerRow[]): TeamRecord | null {
   return [...teams].sort((a, b) => a.winRate - b.winRate || b.played - a.played)[0]
 }
 
+/** Team this player picks most often (ties broken by wins). */
+export function mostPickedTeam(rows: PlayerRow[]): TeamRecord | null {
+  const teams = teamsUsed(rows)
+  if (!teams.length) return null
+  return [...teams].sort((a, b) => b.played - a.played || b.w - a.w)[0]
+}
+
+/** Team that has won this player the most games (ties broken by win rate). */
+export function mostWinsTeam(rows: PlayerRow[]): TeamRecord | null {
+  const withWins = teamsUsed(rows).filter((t) => t.w > 0)
+  if (!withWins.length) return null
+  return withWins.sort((a, b) => b.w - a.w || b.winRate - a.winRate)[0]
+}
+
 export function biggestWin(rows: PlayerRow[]): PlayerRow | null {
   const wins = rows.filter((r) => r.result === "W")
   if (!wins.length) return null
@@ -244,4 +258,112 @@ export function sortPointsTable<T extends RankablePlayer>(
     if (b.goals_for !== a.goals_for) return b.goals_for - a.goals_for
     return h2hWins(b.id, a.id) // more head-to-head wins ranks higher
   })
+}
+
+// ── Board-wide team/club stats ──────────────────────────────────────────────
+export interface TeamSide {
+  team: string
+  playerId: string
+  playerName: string
+  gf: number
+  ga: number
+  result: Result
+}
+
+/** One row per team actually used in a match (a "pick"), from that side's view. */
+export function matchSides(matches: Match[]): TeamSide[] {
+  const sides: TeamSide[] = []
+  for (const m of matches) {
+    const homeRes: Result = m.home_score > m.away_score ? "W" : m.home_score < m.away_score ? "L" : "D"
+    const awayRes: Result = m.away_score > m.home_score ? "W" : m.away_score < m.home_score ? "L" : "D"
+    if (m.home_team) {
+      sides.push({
+        team: m.home_team,
+        playerId: m.home_player_id,
+        playerName: m.home_player_name ?? "?",
+        gf: m.home_score,
+        ga: m.away_score,
+        result: homeRes,
+      })
+    }
+    if (m.away_team) {
+      sides.push({
+        team: m.away_team,
+        playerId: m.away_player_id,
+        playerName: m.away_player_name ?? "?",
+        gf: m.away_score,
+        ga: m.home_score,
+        result: awayRes,
+      })
+    }
+  }
+  return sides
+}
+
+export interface TeamGlobal {
+  team: string
+  picks: number
+  w: number
+  d: number
+  l: number
+  gf: number
+  ga: number
+  gd: number
+  winRate: number
+  users: number
+  topUser: { name: string; count: number } | null
+}
+
+/** Aggregate every team used across the whole board. Sorted by picks. */
+export function teamGlobalStats(matches: Match[]): TeamGlobal[] {
+  const map = new Map<
+    string,
+    {
+      team: string
+      picks: number
+      w: number
+      d: number
+      l: number
+      gf: number
+      ga: number
+      byUser: Map<string, { name: string; count: number }>
+    }
+  >()
+  for (const s of matchSides(matches)) {
+    let t = map.get(s.team)
+    if (!t) {
+      t = { team: s.team, picks: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, byUser: new Map() }
+      map.set(s.team, t)
+    }
+    t.picks++
+    t.gf += s.gf
+    t.ga += s.ga
+    if (s.result === "W") t.w++
+    else if (s.result === "D") t.d++
+    else t.l++
+    const u = t.byUser.get(s.playerId) ?? { name: s.playerName, count: 0 }
+    u.count++
+    u.name = s.playerName
+    t.byUser.set(s.playerId, u)
+  }
+  const out: TeamGlobal[] = [...map.values()].map((t) => {
+    let topUser: { name: string; count: number } | null = null
+    for (const u of t.byUser.values()) {
+      if (!topUser || u.count > topUser.count) topUser = { name: u.name, count: u.count }
+    }
+    return {
+      team: t.team,
+      picks: t.picks,
+      w: t.w,
+      d: t.d,
+      l: t.l,
+      gf: t.gf,
+      ga: t.ga,
+      gd: t.gf - t.ga,
+      winRate: t.picks > 0 ? Math.round((t.w * 100) / t.picks) : 0,
+      users: t.byUser.size,
+      topUser,
+    }
+  })
+  return out.sort((a, b) => b.picks - a.picks || b.winRate - a.winRate)
 }

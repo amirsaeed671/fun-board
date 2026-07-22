@@ -16,6 +16,7 @@ import {
   Swords,
   ListOrdered,
   Settings,
+  Shield,
 } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -27,6 +28,7 @@ const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { href: "/players", label: "Players", icon: Users },
+  { href: "/teams", label: "Teams", icon: Shield },
   { href: "/matches", label: "Matches", icon: ListOrdered },
   { href: "/matches/new", label: "Record Match", icon: Plus },
   { href: "/tournaments", label: "Tournaments", icon: Swords },

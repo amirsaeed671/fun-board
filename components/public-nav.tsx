@@ -9,6 +9,7 @@ export function PublicNav({ slug }: { slug: string }) {
   const base = `/l/${slug}`
   const items = [
     { href: base, label: "Leaderboard" },
+    { href: `${base}/teams`, label: "Teams" },
     { href: `${base}/matches`, label: "Matches" },
     { href: `${base}/tournaments`, label: "Tournaments" },
   ]
