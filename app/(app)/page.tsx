@@ -9,7 +9,7 @@ import { EloTierBadge } from "@/components/elo-tier-badge"
 import { getSessionUserId } from "@/lib/session"
 import { getRecentMatches, getGlobalStats } from "@/lib/queries"
 import { getEnrichedLeaderboard } from "@/lib/leaderboard"
-import { Podium } from "@/components/podium"
+import { LeaderboardView } from "@/components/leaderboard-view"
 import { Trophy, Flame, Target, Plus, ArrowRight, Swords, Users } from "lucide-react"
 import type { Player } from "@/lib/queries"
 
@@ -36,11 +36,7 @@ async function DashboardContent() {
     // DB not yet set up — show empty state
   }
 
-  // Podium follows the points ranking.
-  const rankedForPodium = pointsOrder
-    .map((id) => players.find((p) => p.id === id))
-    .filter(Boolean) as Player[]
-  const top3 = rankedForPodium.slice(0, 3)
+  const hasPlayers = players.length > 0
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8">
@@ -103,8 +99,8 @@ async function DashboardContent() {
         </Card>
       </div>
 
-      {/* Podium */}
-      {top3.length > 0 && (
+      {/* Podium (toggle re-ranks it: Points ↔ Elo) */}
+      {hasPlayers && (
         <Card className="bg-card border-border overflow-hidden">
           <CardHeader className="pb-2">
             <CardTitle className="font-display text-lg flex items-center gap-2">
@@ -113,7 +109,7 @@ async function DashboardContent() {
             </CardTitle>
           </CardHeader>
           <CardContent className="pb-6">
-            <Podium players={rankedForPodium} />
+            <LeaderboardView players={players} pointsOrder={pointsOrder} showTable={false} />
           </CardContent>
         </Card>
       )}

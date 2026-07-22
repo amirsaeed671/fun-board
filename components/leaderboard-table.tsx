@@ -17,10 +17,21 @@ interface Props {
   /** Player ids in points-table order (points → GD → GF → head-to-head). */
   pointsOrder: string[]
   playerBasePath?: string // "" for admin, "/l/[slug]" for public
+  /** When provided, the view is controlled by the parent (shared toggle). */
+  view?: View
+  /** Hide the built-in toggle (e.g. when a parent renders a shared one). */
+  showToggle?: boolean
 }
 
-export function LeaderboardTable({ players, pointsOrder, playerBasePath = "" }: Props) {
-  const [view, setView] = useState<View>("points")
+export function LeaderboardTable({
+  players,
+  pointsOrder,
+  playerBasePath = "",
+  view: controlledView,
+  showToggle = true,
+}: Props) {
+  const [internalView, setInternalView] = useState<View>("points")
+  const view = controlledView ?? internalView
 
   const byId = new Map(players.map((p) => [p.id, p]))
   const ordered =
@@ -30,21 +41,23 @@ export function LeaderboardTable({ players, pointsOrder, playerBasePath = "" }: 
 
   return (
     <div className="space-y-4">
-      {/* Toggle */}
-      <div className="inline-flex rounded-lg border border-border bg-secondary/50 p-1">
-        {(["points", "elo"] as const).map((v) => (
-          <button
-            key={v}
-            onClick={() => setView(v)}
-            className={cn(
-              "px-4 py-1.5 rounded-md text-sm font-medium font-display transition-colors capitalize",
-              view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            {v === "points" ? "Points" : "Elo"}
-          </button>
-        ))}
-      </div>
+      {/* Toggle (hidden when a parent renders a shared one) */}
+      {showToggle && (
+        <div className="inline-flex rounded-lg border border-border bg-secondary/50 p-1">
+          {(["points", "elo"] as const).map((v) => (
+            <button
+              key={v}
+              onClick={() => setInternalView(v)}
+              className={cn(
+                "px-4 py-1.5 rounded-md text-sm font-medium font-display transition-colors capitalize",
+                view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {v === "points" ? "Points" : "Elo"}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="rounded-xl border border-border bg-card overflow-hidden">
         <div className="grid grid-cols-[2rem_1fr_auto_auto_auto] gap-3 px-4 py-2.5 border-b border-border bg-secondary/50 text-xs text-muted-foreground font-medium">
